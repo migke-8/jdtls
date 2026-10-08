@@ -1,86 +1,85 @@
 {
   description = "JDTLS + JBang LS";
-
   inputs = {
-    nixpkgs.url =
-      "github:NixOS/nixpkgs/nixos-unstable";
-
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     jbang-ls-src = {
       url = "github:jbangdev/jbang-eclipse";
       flake = false;
     };
   };
-
-  outputs = {
-    self,
-    nixpkgs,
-    jbang-ls-src,
-  }:
-
-  let
-
-    system = "x86_64-linux";
-
-    pkgs =
-      import nixpkgs {
+  outputs = { self, nixpkgs, jbang-ls-src }:
+    let
+      system = "x86_64-linux";
+      pkgs = import nixpkgs {
         inherit system;
       };
-
-    jbang-ls-deps =
-      pkgs.stdenv.mkDerivation {
-
+      jbang-ls-deps = pkgs.stdenv.mkDerivation {
         pname = "jbang-ls-deps";
-        version = "git";
+        version = "0.0.2";
+        outputHash = "sha256-dE9mlUPQBa3uDcJfMUzy+gwsy+SuExt02JkE6v4Ww4s=";
+        outputHashMode = "recursive";
+        outputHashAlgo = "sha256";
 
         src = jbang-ls-src;
 
         nativeBuildInputs = with pkgs; [
           maven
+          jdk21
           cacert
         ];
-
-        outputHashMode = "recursive";
-        outputHash = pkgs.lib.fakeSha256;
-
-        buildPhase = ''
-          ./mvnw clean package
+        postPatch = ''
+          substituteInPlace pom.xml \
+            --replace-fail \
+              '<generateSourceRef>true</generateSourceRef>' \
+              '<generateSourceRef>false</generateSourceRef>'
         '';
+        preBuild = ''
+          export HOME="$TMPDIR/home"
+          export MAVEN_OPTS="-Dmaven.repo.local=$TMPDIR/maven-repo"
 
+          mkdir -p "$HOME"
+          mkdir -p "$TMPDIR/maven-repo"
+        '';
+        buildPhase = ''
+            runHook preBuild
+            export SOURCE_DATE_EPOCH=315532802
+            ./mvnw \
+            -T 1C \
+            -pl dev.jbang.eclipse.target,dev.jbang.eclipse.core,dev.jbang.eclipse.ls \
+            -am \
+            -Dmaven.test.skip=true \
+            -DgenerateSourceRef=false \
+            -P '!code-coverage' \
+            package
+            runHook postBuild
+        '';
         installPhase = ''
-          mkdir -p "$out/jars"
+          runHook preInstall
 
-          find . \
-            -type f \
-            -name '*.jar' \
-            \( \
-              -path '*/dev.jbang.eclipse.ls/*' \
-              -o \
-              -path '*/dev.jbang.eclipse.core/*' \
-            \) \
-            -exec cp {} "$out/jars/" \;
+          mkdir -p "$out/jars"
+          cp dev.jbang.eclipse.core/target/dev.jbang.eclipse.core-*.jar \
+            "$out/jars/"
+          cp dev.jbang.eclipse.ls/target/dev.jbang.eclipse.ls-*.jar \
+            "$out/jars/"
+
+          runHook postInstall
         '';
       };
+      jdtls = pkgs.jdt-language-server.overrideAttrs (old: {
+        postInstall = ''
+          ${old.postInstall or ""}
 
-    jdtls =
-      pkgs.jdt-language-server.overrideAttrs
-        (old: {
+          mkdir -p "$out/share/jdtls/plugins"
 
-          postInstall = ''
-            ${old.postInstall or ""}
-
-            mkdir -p "$out/share/jdtls/bundles"
-
-            cp ${jbang-ls-deps}/jars/*.jar \
-              "$out/share/jdtls/bundles/"
-          '';
-        });
-
-  in {
-
-    packages.${system} = {
-      inherit jbang-ls-deps;
-      jdt-language-server = jdtls;
-      default = jdtls;
+          cp ${jbang-ls-deps}/jars/*.jar "$out/share/jdtls/plugins/"
+        '';
+      });
+    in
+    {
+      packages.${system} = {
+        inherit jbang-ls-deps;
+        jdt-language-server = jdtls;
+        default = jdtls;
+      };
     };
-  };
 }

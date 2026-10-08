@@ -1,0 +1,44 @@
+{
+  "nodes": {
+    "jbang-ls-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1779206960,
+        "narHash": "sha256-bVhT/VifMDUh9lKEA9rUOSTqdDegS36X2rUbMe35pdQ=",
+        "owner": "jbangdev",
+        "repo": "jbang-eclipse",
+        "rev": "d679076b4797a216eb7ef3fbc5113f9bdf99ed5b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "jbangdev",
+        "repo": "jbang-eclipse",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1791456040,
+        "narHash": "sha256-H83yz/do+hjOO0uujHyH8RgtIQP2v7Mw+cLwcZK/xKc=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "e7439b6b14ad3cc35d05608ebca9bce01a25f5f8",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "jbang-ls-src": "jbang-ls-src",
+        "nixpkgs": "nixpkgs"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}
